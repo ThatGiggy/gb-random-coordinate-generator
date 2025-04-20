@@ -1,13 +1,14 @@
-let lat = parseFloat(localStorage.getItem('targetLat'));
-let lng = parseFloat(localStorage.getItem('targetLng'));
+const arrowElement = document.getElementById('arrow');
+
+const lat = parseFloat(localStorage.getItem('targetLat'));
+const lng = parseFloat(localStorage.getItem('targetLng'));
 
 if (isNaN(lat) || isNaN(lng)) {
   alert('No target coordinate found.');
   history.back();
 }
 
-let target = { lat, lng };
-let arrowElement = document.getElementById('arrow');
+const target = { lat, lng };
 
 function deg2rad(deg) {
   return deg * (Math.PI / 180);
@@ -33,35 +34,47 @@ navigator.geolocation.getCurrentPosition(pos => {
   };
   bearingToTarget = calculateBearing(userLoc, target);
   requestOrientationPermission();
-}, err => {
-  alert('Failed to get your location.');
+}, () => {
+  alert("Couldn't get your location.");
 });
 
 function handleOrientation(event) {
-  const alpha = event.alpha;
-  if (alpha != null) {
-    const heading = 360 - alpha;
-    const angle = (bearingToTarget - heading + 360) % 360;
-    arrowElement.style.transform = `translate(-50%, -100%) rotate(${angle}deg)`;
+  let heading;
+
+  // iOS uses webkitCompassHeading
+  if (event.webkitCompassHeading !== undefined) {
+    heading = event.webkitCompassHeading;
+  } else if (event.alpha !== null) {
+    // Most Androids use alpha
+    heading = 360 - event.alpha;
+  } else {
+    return;
   }
+
+  const angle = (bearingToTarget - heading + 360) % 360;
+  arrowElement.style.transform = `translate(-50%, -100%) rotate(${angle}deg)`;
 }
 
 function requestOrientationPermission() {
   if (typeof DeviceOrientationEvent !== 'undefined' &&
       typeof DeviceOrientationEvent.requestPermission === 'function') {
-    // iOS 13+ permission flow
+    // iOS
     DeviceOrientationEvent.requestPermission()
       .then(permissionState => {
         if (permissionState === 'granted') {
-          window.addEventListener('deviceorientation', handleOrientation);
+          window.addEventListener('deviceorientation', handleOrientation, true);
         } else {
-          alert('Compass access was denied.');
+          alert('Permission to access compass was denied.');
         }
       })
-      .catch(console.error);
+      .catch(err => {
+        console.error(err);
+        alert('Error requesting orientation permission.');
+      });
   } else {
-    // Android / non-iOS fallback
-    window.addEventListener('deviceorientation', handleOrientation);
+    // Android / others
+    window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+    window.addEventListener('deviceorientation', handleOrientation, true);
   }
 }
 
