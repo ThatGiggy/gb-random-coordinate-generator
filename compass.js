@@ -1,5 +1,4 @@
 const arrowElement = document.getElementById('arrow');
-
 const lat = parseFloat(localStorage.getItem('targetLat'));
 const lng = parseFloat(localStorage.getItem('targetLng'));
 
@@ -10,10 +9,12 @@ if (isNaN(lat) || isNaN(lng)) {
 
 const target = { lat, lng };
 
+// Convert degrees to radians
 function deg2rad(deg) {
   return deg * (Math.PI / 180);
 }
 
+// Calculate bearing between two coordinates
 function calculateBearing(start, end) {
   const φ1 = deg2rad(start.lat);
   const φ2 = deg2rad(end.lat);
@@ -40,27 +41,32 @@ navigator.geolocation.getCurrentPosition(pos => {
   alert("Couldn't get your location.");
 });
 
-function handleOrientation(event) {
-  let heading;
+// Handle orientation changes
+let heading = null;
+let isHeadingValid = false;
 
-  if (event.webkitCompassHeading !== undefined) {
-    heading = event.webkitCompassHeading;
-    console.log('iOS heading:', heading);
-  } else if (event.alpha !== null) {
-    heading = 360 - event.alpha;
-    console.log('Android heading:', heading);
+function handleOrientation(event) {
+  if (event.alpha !== null) {
+    heading = 360 - event.alpha; // For Android and iOS
   } else {
     console.warn('No heading data available.');
     return;
   }
 
+  // Once we get a valid heading, we can set it
+  isHeadingValid = true;
+
+  // Calculate angle between the current heading and target bearing
   const angle = (bearingToTarget - heading + 360) % 360;
   console.log(`Rotation angle: ${angle}`);
+
+  // Rotate the arrow
   arrowElement.style.transform = `translate(-50%, -100%) rotate(${angle}deg)`;
 }
 
+// Request orientation permission (only needed for iOS)
 function requestOrientationPermission() {
-  if (typeof DeviceOrientationEvent !== 'undefined' &&
+  if (typeof DeviceOrientationEvent !== 'undefined' && 
       typeof DeviceOrientationEvent.requestPermission === 'function') {
     // iOS permission request
     DeviceOrientationEvent.requestPermission()
@@ -78,23 +84,9 @@ function requestOrientationPermission() {
         alert('Error requesting permission.');
       });
   } else {
-    // For Android & other devices
+    // No permission request needed for Android and non-iOS devices
     console.log('No permission request needed.');
     window.addEventListener('deviceorientationabsolute', handleOrientation, true);
     window.addEventListener('deviceorientation', handleOrientation, true);
   }
 }
-
-// Optional retry logic if orientation data isn't updating after a few seconds.
-let retryAttempts = 0;
-const maxRetries = 5;
-const retryInterval = setInterval(() => {
-  if (retryAttempts < maxRetries && !heading) {
-    retryAttempts++;
-    console.log(`Retrying orientation data (attempt ${retryAttempts})`);
-  } else if (retryAttempts >= maxRetries) {
-    clearInterval(retryInterval);
-    console.error('Failed to get valid orientation data after retries.');
-    alert('Failed to get valid orientation data.');
-  }
-}, 1000);
