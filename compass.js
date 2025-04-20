@@ -84,3 +84,17 @@ function requestOrientationPermission() {
     window.addEventListener('deviceorientation', handleOrientation, true);
   }
 }
+
+// Optional retry logic if orientation data isn't updating after a few seconds.
+let retryAttempts = 0;
+const maxRetries = 5;
+const retryInterval = setInterval(() => {
+  if (retryAttempts < maxRetries && !heading) {
+    retryAttempts++;
+    console.log(`Retrying orientation data (attempt ${retryAttempts})`);
+  } else if (retryAttempts >= maxRetries) {
+    clearInterval(retryInterval);
+    console.error('Failed to get valid orientation data after retries.');
+    alert('Failed to get valid orientation data.');
+  }
+}, 1000);
