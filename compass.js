@@ -1,57 +1,67 @@
-let targetLat = parseFloat(localStorage.getItem("targetLat"));
-let targetLng = parseFloat(localStorage.getItem("targetLng"));
-const arrow = document.getElementById("arrow");
-const output = document.getElementById("output");
+let lat = parseFloat(localStorage.getItem('targetLat'));
+let lng = parseFloat(localStorage.getItem('targetLng'));
 
-let deviceHeading = 0;  // Default heading if not available
-
-if (isNaN(targetLat) || isNaN(targetLng)) {
-  output.textContent = "No valid target coordinate found.";
-} else {
-  navigator.geolocation.getCurrentPosition(showDirection, handleError);
-  window.addEventListener('deviceorientation', updateDeviceHeading);
+if (isNaN(lat) || isNaN(lng)) {
+  alert('No target coordinate found.');
+  history.back();
 }
 
-function showDirection(position) {
-  const userLat = position.coords.latitude;
-  const userLng = position.coords.longitude;
-  output.textContent = "Tracking your position...";
+let target = { lat, lng };
+let arrowElement = document.getElementById('arrow');
 
-  // Calculate the bearing (angle) from user to target coordinate
-  const bearing = calculateBearing(userLat, userLng, targetLat, targetLng);
-
-  // Adjust the bearing based on the device's current facing direction
-  const relativeBearing = bearing - deviceHeading;
-
-  // Update the arrow's rotation based on the adjusted bearing
-  arrow.style.transform = `translateX(-50%) translateY(-100%) rotate(${relativeBearing}deg)`;
-
-  // Display user's and target's coordinates (optional)
-  console.log(`Your Location: ${userLat}, ${userLng}`);
-  console.log(`Target Location: ${targetLat}, ${targetLng}`);
+function deg2rad(deg) {
+  return deg * (Math.PI / 180);
 }
 
-function handleError(error) {
-  output.textContent = "Error getting location.";
-  console.error(error);
-}
-
-function calculateBearing(lat1, lon1, lat2, lon2) {
-  const radians = Math.PI / 180;
-  
-  const φ1 = lat1 * radians;
-  const φ2 = lat2 * radians;
-  const Δλ = (lon2 - lon1) * radians;
-
+function calculateBearing(start, end) {
+  const φ1 = deg2rad(start.lat);
+  const φ2 = deg2rad(end.lat);
+  const Δλ = deg2rad(end.lng - start.lng);
   const y = Math.sin(Δλ) * Math.cos(φ2);
-  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-  
-  let bearing = Math.atan2(y, x) * (180 / Math.PI);
-  bearing = (bearing + 360) % 360; // Normalize to 0–360°
-  return bearing;
+  const x = Math.cos(φ1) * Math.sin(φ2) -
+            Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  const θ = Math.atan2(y, x);
+  return (θ * 180 / Math.PI + 360) % 360;
 }
 
-// Updates the device's current heading (rotation direction)
-function updateDeviceHeading(event) {
-  deviceHeading = event.alpha || 0; // `alpha` is the compass heading in degrees
+let bearingToTarget = 0;
+
+navigator.geolocation.getCurrentPosition(pos => {
+  const userLoc = {
+    lat: pos.coords.latitude,
+    lng: pos.coords.longitude
+  };
+  bearingToTarget = calculateBearing(userLoc, target);
+  requestOrientationPermission();
+}, err => {
+  alert('Failed to get your location.');
+});
+
+function handleOrientation(event) {
+  const alpha = event.alpha;
+  if (alpha != null) {
+    const heading = 360 - alpha;
+    const angle = (bearingToTarget - heading + 360) % 360;
+    arrowElement.style.transform = `translate(-50%, -100%) rotate(${angle}deg)`;
+  }
 }
+
+function requestOrientationPermission() {
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    // iOS 13+ permission flow
+    DeviceOrientationEvent.requestPermission()
+      .then(permissionState => {
+        if (permissionState === 'granted') {
+          window.addEventListener('deviceorientation', handleOrientation);
+        } else {
+          alert('Compass access was denied.');
+        }
+      })
+      .catch(console.error);
+  } else {
+    // Android / non-iOS fallback
+    window.addEventListener('deviceorientation', handleOrientation);
+  }
+}
+
