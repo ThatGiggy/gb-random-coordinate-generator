@@ -33,21 +33,24 @@ navigator.geolocation.getCurrentPosition(pos => {
     lng: pos.coords.longitude
   };
   bearingToTarget = calculateBearing(userLoc, target);
+  console.log('Bearing to target:', bearingToTarget.toFixed(2));
   requestOrientationPermission();
-}, () => {
+}, err => {
+  console.error('Geolocation error:', err);
   alert("Couldn't get your location.");
 });
 
 function handleOrientation(event) {
   let heading;
 
-  // iOS uses webkitCompassHeading
   if (event.webkitCompassHeading !== undefined) {
     heading = event.webkitCompassHeading;
+    console.log('iOS heading:', heading);
   } else if (event.alpha !== null) {
-    // Most Androids use alpha
     heading = 360 - event.alpha;
+    console.log('Android heading:', heading);
   } else {
+    console.warn('No heading data');
     return;
   }
 
@@ -68,13 +71,12 @@ function requestOrientationPermission() {
         }
       })
       .catch(err => {
-        console.error(err);
+        console.error('Orientation permission error:', err);
         alert('Error requesting orientation permission.');
       });
   } else {
-    // Android / others
+    // Android or non-iOS
     window.addEventListener('deviceorientationabsolute', handleOrientation, true);
     window.addEventListener('deviceorientation', handleOrientation, true);
   }
 }
-

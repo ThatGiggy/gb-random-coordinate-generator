@@ -24,12 +24,25 @@
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 0;
-      height: 0;
-      border: solid 40px transparent;
-      border-bottom-color: red;
+      width: 6px;
+      height: 90px;
+      background: red;
       transform: translate(-50%, -100%) rotate(0deg);
       transform-origin: bottom center;
+      border-radius: 3px;
+    }
+
+    #arrow::after {
+      content: "";
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-bottom: 15px solid red;
     }
 
     button {
@@ -45,7 +58,6 @@
     <div id="arrow"></div>
   </div>
   <button onclick="history.back()">Back</button>
-
   <script src="compass.js"></script>
 </body>
 </html>
