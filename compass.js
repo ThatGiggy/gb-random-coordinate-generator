@@ -28,6 +28,7 @@ function calculateBearing(start, end) {
 
 let bearingToTarget = 0;
 
+// Get initial location to calculate target bearing
 navigator.geolocation.getCurrentPosition(pos => {
   const userLoc = {
     lat: pos.coords.latitude,
@@ -45,6 +46,16 @@ navigator.geolocation.getCurrentPosition(pos => {
 let heading = null;
 let isHeadingValid = false;
 
+// Function to reset heading data and stop previous event listeners
+function resetOrientation() {
+  window.removeEventListener('deviceorientation', handleOrientation);
+  window.removeEventListener('deviceorientationabsolute', handleOrientation);
+  heading = null;
+  isHeadingValid = false;
+  console.log('Orientation data reset');
+}
+
+// Function to handle orientation event
 function handleOrientation(event) {
   if (event.alpha !== null) {
     heading = 360 - event.alpha; // For Android and iOS
@@ -73,6 +84,7 @@ function requestOrientationPermission() {
       .then(permissionState => {
         if (permissionState === 'granted') {
           console.log('Permission granted!');
+          // Add event listeners once permission is granted
           window.addEventListener('deviceorientation', handleOrientation, true);
         } else {
           console.error('Permission to access the compass was denied.');
@@ -90,3 +102,6 @@ function requestOrientationPermission() {
     window.addEventListener('deviceorientation', handleOrientation, true);
   }
 }
+
+// Reset orientation data and event listeners when navigating away from compass page
+window.addEventListener('beforeunload', resetOrientation);
