@@ -50,32 +50,36 @@ function handleOrientation(event) {
     heading = 360 - event.alpha;
     console.log('Android heading:', heading);
   } else {
-    console.warn('No heading data');
+    console.warn('No heading data available.');
     return;
   }
 
   const angle = (bearingToTarget - heading + 360) % 360;
+  console.log(`Rotation angle: ${angle}`);
   arrowElement.style.transform = `translate(-50%, -100%) rotate(${angle}deg)`;
 }
 
 function requestOrientationPermission() {
   if (typeof DeviceOrientationEvent !== 'undefined' &&
       typeof DeviceOrientationEvent.requestPermission === 'function') {
-    // iOS
+    // iOS permission request
     DeviceOrientationEvent.requestPermission()
       .then(permissionState => {
         if (permissionState === 'granted') {
+          console.log('Permission granted!');
           window.addEventListener('deviceorientation', handleOrientation, true);
         } else {
-          alert('Permission to access compass was denied.');
+          console.error('Permission to access the compass was denied.');
+          alert('Permission denied. Compass functionality won’t work.');
         }
       })
       .catch(err => {
-        console.error('Orientation permission error:', err);
-        alert('Error requesting orientation permission.');
+        console.error('Error requesting orientation permission:', err);
+        alert('Error requesting permission.');
       });
   } else {
-    // Android or non-iOS
+    // For Android & other devices
+    console.log('No permission request needed.');
     window.addEventListener('deviceorientationabsolute', handleOrientation, true);
     window.addEventListener('deviceorientation', handleOrientation, true);
   }
